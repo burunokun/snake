@@ -212,6 +212,161 @@ void render_grid(SDL_Renderer *renderer) {
     }
 }
 
+typedef enum {
+    T_FORWARD,
+    T_LEFT,
+    T_RIGHT,
+} Try;
+
+void go_left(Snake *s) {
+    switch (s->dir) {
+        case UP:
+            s->dir = LEFT;
+            break;
+        case DOWN:
+            s->dir = RIGHT;
+            break;
+        case LEFT:
+            s->dir = DOWN;
+            break;
+        case RIGHT:
+            s->dir = UP;
+            break;
+    }
+}
+
+void go_right(Snake *s) {
+    switch (s->dir) {
+        case UP:
+            s->dir = RIGHT;
+            break;
+        case DOWN:
+            s->dir = LEFT;
+            break;
+        case LEFT:
+            s->dir = UP;
+            break;
+        case RIGHT:
+            s->dir = DOWN;
+            break;
+    }
+}
+
+int next_dir(Snake *s, SDL_Rect *a, Try try) {
+    int result = 0;
+
+    int tx = s->x;
+    int ty = s->y;
+
+    switch (s->dir) {
+        case UP: 
+            switch (try) {
+                case T_FORWARD: 
+                    ty -= CELL;
+                    break;
+                case T_LEFT: 
+                    tx -= CELL;
+                    break;
+                case T_RIGHT: 
+                    tx += CELL;
+                    break;
+            }
+            break;
+
+        case DOWN: 
+            switch (try) {
+                case T_FORWARD:
+                    ty += CELL;
+                    break;
+                case T_LEFT:
+                    tx += CELL;
+                    break;
+                case T_RIGHT:
+                    tx -= CELL;
+                    break;
+            }
+            break;
+
+        case LEFT: 
+            switch (try) {
+                case T_FORWARD: 
+                    tx -= CELL;
+                    break;
+                case T_LEFT: 
+                    ty += CELL;
+                    break;
+                case T_RIGHT: 
+                    ty -= CELL;
+                    break;
+            }
+            break;
+
+        case RIGHT: 
+            switch (try) {
+                case T_FORWARD:
+                    tx += CELL;
+                    break;
+                case T_LEFT:
+                    ty -= CELL;
+                    break;
+                case T_RIGHT:
+                    ty += CELL;
+                    break;
+            }
+            break;
+    }
+
+    if (tx < 0 || tx >= SCREEN_WIDTH) {
+        result += -100;
+    }
+    if (ty < 0 || ty >= SCREEN_HEIGHT) {
+        result += -100;
+    }
+
+    if (tx == a->x && ty == a->y) {
+        result += 100;
+    }
+
+    int dx = s->x > a->x ? s->x - a->x : a->x - s->x;
+    int dy = s->y > a->y ? s->y - a->y : a->y - s->y;
+    int nx = tx > a->x ? tx - a->x : a->x - tx;
+    int ny = ty > a->y ? ty - a->y : a->y - ty;
+
+    if (nx < dx) {
+        result += 10;
+    }
+
+    if (ny < dy) {
+        result += 10;
+    }
+
+    for (int i = 0; i < s->len; ++i) {
+        if (tx == s->body[i].x && ty == s->body[i].y) {
+            result += -100;
+        }
+    }
+
+    return result;
+}
+
+void ai(Snake *s, SDL_Rect *a) {
+    int forward = next_dir(s, a, T_FORWARD);
+    int left    = next_dir(s, a, T_LEFT);
+    int right   = next_dir(s, a, T_RIGHT);
+
+    if (forward >= left && forward >= right) {
+        // GO FORWARD
+    } else {
+        if (left > right) {
+            // GO LEFT
+            go_left(s);
+        } else {
+            // GO RIGHT
+            go_right(s);
+        }
+    }
+}
+
 int main(void) {
     srand(time(NULL));
 
@@ -232,6 +387,7 @@ int main(void) {
 
     bool quit = false;
     bool paused = false;
+    bool ai_mode = false;
 
     SDL_Event ev;
 
@@ -245,7 +401,8 @@ int main(void) {
                 case SDL_KEYDOWN:
                     if (ev.key.keysym.sym == SDLK_ESCAPE) quit = !quit;;
                     if (ev.key.keysym.sym == SDLK_SPACE)  paused = !paused;
-                    if (!paused) {
+                    if (ev.key.keysym.sym == SDLK_a)  ai_mode = !ai_mode;
+                    if (!paused && !ai_mode) {
                         if (snake.dir != UP &&
                                 ev.key.keysym.sym == SDLK_j) snake.dir = DOWN;
                         else if (snake.dir != DOWN &&
@@ -263,6 +420,8 @@ int main(void) {
             SDL_RenderClear(renderer);
 
             move_snake(&snake);
+
+            if (ai_mode) ai(&snake, &apple);
             if (has_hit_itself(&snake)) reset_snake(&snake);
 
             if (snake.x == apple.x && snake.y == apple.y) {

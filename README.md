@@ -23,6 +23,7 @@ export PKG_CONFIG_PATH=path/to/sdl/lib/pkgconfig/
 - Move snake with `h, j ,k ,l`
 - Press `SPACE` to pause
 - Press `ESCAPE` to quit
+- Press `a` to enter ai mode
 
 ### Features & Updates
 
@@ -31,3 +32,4 @@ export PKG_CONFIG_PATH=path/to/sdl/lib/pkgconfig/
 - [ADD] Color skin for Snake
 - [FIX] Apple would spawn within Snake's body
 - [UPDATE] Changed all drawing functions from `SDL_Surface` to `SDL_Renderer`
+- [ADD] Now Snake can play itself! Although being very naive approach it is fun to watch!
